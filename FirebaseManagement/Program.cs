@@ -108,17 +108,24 @@ namespace FirebaseManagement
                 }
             }
 
-            DeleteUsersResult result = await FirebaseAuth.DefaultInstance.DeleteUsersAsync(anonUID);
+            var chunkedUserList = anonUID.ChunkBy(1000);
 
-            Console.WriteLine($"Successfully deleted {result.SuccessCount} users.");
-            Console.WriteLine($"Failed to delete {result.FailureCount} users.");
-
-            foreach (ErrorInfo err in result.Errors)
+            for (int i = 0; i < chunkedUserList.Count; i++)
             {
-                Console.WriteLine($"Error #{err.Index}, reason: {err.Reason}");
+                DeleteUsersResult result = await FirebaseAuth.DefaultInstance.DeleteUsersAsync(chunkedUserList[i]);
+
+                Console.WriteLine($"Successfully deleted {result.SuccessCount} users.");
+                Console.WriteLine($"Failed to delete {result.FailureCount} users.");
+
+                foreach (ErrorInfo err in result.Errors)
+                {
+                    Console.WriteLine($"Error #{err.Index}, reason: {err.Reason}");
+                }
             }
 
+            Console.WriteLine("Press a key to continue.");
             Console.ReadKey();
+            await SelectOptionsAsync();
         }
     }
 }
