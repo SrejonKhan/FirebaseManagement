@@ -63,7 +63,8 @@ namespace FirebaseManagement
             Console.WriteLine("Firebase Management");
 
             string options = "\n" +
-                "1. Delete all Anonymous Users \n";
+                "1. Delete all Anonymous Users \n" +
+                "2. Delete all Users \n";
             Console.WriteLine(options);
 
             Console.Write("Select Option - ");
@@ -74,6 +75,9 @@ namespace FirebaseManagement
                 {
                     case 0:
                         await DeleteAllAnonymousUserAsync();
+                        break;
+                    case 1:
+                        await DeleteAllUsersAsync();
                         break;
                     default:
                         await SelectOptionsAsync();
@@ -109,6 +113,44 @@ namespace FirebaseManagement
             }
 
             var chunkedUserList = anonUID.ChunkBy(1000);
+
+            for (int i = 0; i < chunkedUserList.Count; i++)
+            {
+                DeleteUsersResult result = await FirebaseAuth.DefaultInstance.DeleteUsersAsync(chunkedUserList[i]);
+
+                Console.WriteLine($"Successfully deleted {result.SuccessCount} users.");
+                Console.WriteLine($"Failed to delete {result.FailureCount} users.");
+
+                foreach (ErrorInfo err in result.Errors)
+                {
+                    Console.WriteLine($"Error #{err.Index}, reason: {err.Reason}");
+                }
+            }
+
+            Console.WriteLine("Press a key to continue.");
+            Console.ReadKey();
+            await SelectOptionsAsync();
+        }
+
+        static async Task DeleteAllUsersAsync()
+        {
+            Console.WriteLine("\nPlease wait, it may take some time to delete all users. \n");
+
+            List<string> userId = new List<string>();
+            // Start listing users from the beginning, 1000 at a time.
+            var pagedEnumerable = FirebaseAuth.DefaultInstance.ListUsersAsync(null);
+            var responses = pagedEnumerable.AsRawResponses().GetAsyncEnumerator();
+
+            while (await responses.MoveNextAsync())
+            {
+                ExportedUserRecords response = responses.Current;
+                foreach (ExportedUserRecord user in response.Users)
+                {
+                    userId.Add(user.Uid);
+                }
+            }
+
+            var chunkedUserList = userId.ChunkBy(1000);
 
             for (int i = 0; i < chunkedUserList.Count; i++)
             {
